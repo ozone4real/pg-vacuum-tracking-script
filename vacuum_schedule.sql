@@ -1,7 +1,4 @@
-\
-SET
-      relname 'users';
-
+-- \set relname 'users' --
 WITH vacuum_params AS (
       WITH relation_params AS (
             SELECT
@@ -67,16 +64,17 @@ WITH vacuum_params AS (
             params
 )
 SELECT
-      pg_class.relname,
+      pg_class.relname table_name,
       greatest(last_autovacuum, last_vacuum) last_vacuum,
       greatest(last_autoanalyze, last_analyze) last_analyze,
-      reltuples,
-      n_dead_tup dead_tuples_count,
+      reltuples estimated_no_of_rows_in_table,
+      (n_dead_tup / reltuples :: float) * 100 bloat_percentage,
+      n_dead_tup dead_tuples,
       n_mod_since_analyze modified_tuples_since_last_analyze,
       n_ins_since_vacuum inserted_tuples_since_last_vacuum,
       round(
             autovacuum_vacuum_threshold + (autovacuum_vacuum_scale_factor * reltuples)
-      ) - n_dead_tup updates_and_deletes_till_next_auto_vacuum,
+      ) - n_dead_tup updates_and_deletes_till_next_autovacuum,
       round(
             autovacuum_analyze_threshold + (autovacuum_analyze_scale_factor * reltuples)
       ) - n_mod_since_analyze modifcations_till_next_autoanalyze,
@@ -84,7 +82,7 @@ SELECT
             autovacuum_vacuum_insert_threshold + (
                   autovacuum_vacuum_insert_scale_factor * reltuples
             )
-      ) - n_ins_since_vacuum inserts_till_next_auto_vacuum
+      ) - n_ins_since_vacuum inserts_till_next_autovacuum
 FROM
       pg_stat_user_tables,
       vacuum_params,
